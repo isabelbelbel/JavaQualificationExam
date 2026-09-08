@@ -1,0 +1,346 @@
+:root {
+    --primary: #0d6efd;
+    --primary-hover: #0b5ed7;
+    --danger: #dc3545;
+    --danger-hover: #bb2d3b;
+    --success-bg: #d1e7dd;
+    --success-text: #0f5132;
+    --error-bg: #f8d7da;
+    --error-text: #842029;
+    --light: #f8f9fa;
+    --border: #dee2e6;
+    --text: #212529;
+    --muted: #6c757d;
+    --white: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    color: var(--text);
+    background: var(--light);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+body > header,
+body > main,
+body > h1,
+body > h2,
+body > p,
+body > table,
+body > form,
+body > dl {
+    width: min(1100px, calc(100% - 32px));
+    margin-right: auto;
+    margin-left: auto;
+}
+
+/* Application header */
+
+body::before {
+    display: block;
+    padding: 16px max(16px, calc((100% - 1100px) / 2));
+    color: var(--white);
+    background: #212529;
+    content: "JavaQualificationExam";
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* Headings */
+
+h1 {
+    margin-top: 32px;
+    margin-bottom: 8px;
+    font-size: 32px;
+}
+
+h2 {
+    margin-top: 28px;
+    margin-bottom: 16px;
+    font-size: 22px;
+}
+
+p {
+    margin-top: 8px;
+    margin-bottom: 16px;
+}
+
+/* Links */
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Buttons */
+
+button,
+.button {
+    display: inline-block;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--white);
+    background: var(--primary);
+    font: inherit;
+    font-weight: 500;
+    line-height: 1.25;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+button:hover,
+.button:hover {
+    color: var(--white);
+    background: var(--primary-hover);
+    text-decoration: none;
+}
+
+button:focus,
+.button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 3px solid rgba(13, 110, 253, 0.25);
+    outline-offset: 1px;
+}
+
+/* Destructive buttons */
+
+button[title*="Delete"],
+button[aria-label*="Delete"],
+.danger-button {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: var(--white);
+}
+
+button[title*="Delete"]:hover,
+button[aria-label*="Delete"]:hover,
+.danger-button:hover {
+    color: var(--white);
+    background: var(--danger-hover);
+}
+
+/* Forms */
+
+form {
+    margin-top: 12px;
+    margin-bottom: 16px;
+}
+
+form > div {
+    margin-bottom: 18px;
+}
+
+label {
+    display: inline-block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+    display: block;
+    width: 100%;
+    max-width: 600px;
+    padding: 9px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    color: var(--text);
+    background: var(--white);
+    font: inherit;
+}
+
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+fieldset {
+    max-width: 600px;
+    margin: 18px 0;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--white);
+}
+
+legend {
+    padding: 0 8px;
+    font-weight: 600;
+}
+
+/* Validation messages */
+
+form div[th\:errors],
+.validation-error {
+    margin-top: 6px;
+    color: var(--danger);
+    font-size: 14px;
+}
+
+/* Tables */
+
+table {
+    width: min(1100px, calc(100% - 32px));
+    margin-top: 16px;
+    margin-bottom: 32px;
+    border: 1px solid var(--border);
+    border-collapse: collapse;
+    border-radius: 6px;
+    background: var(--white);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+thead {
+    background: #e9ecef;
+}
+
+th,
+td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: middle;
+}
+
+th {
+    font-weight: 600;
+}
+
+tbody tr:hover {
+    background: #f8f9fa;
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+td form {
+    width: auto;
+    margin: 0;
+}
+
+/* Project information */
+
+dl {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    max-width: 700px;
+    margin-top: 16px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--white);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+dt,
+dd {
+    padding: 8px 0;
+    border-bottom: 1px solid #eeeeee;
+}
+
+dt {
+    font-weight: 600;
+}
+
+dd {
+    margin: 0;
+}
+
+/* Notifications */
+
+.alert-success,
+p[th\:if="\${successMessage}"] {
+    padding: 12px 16px;
+    border: 1px solid #badbcc;
+    border-radius: 6px;
+    color: var(--success-text);
+    background: var(--success-bg);
+}
+
+.alert-error,
+p[th\:if="\${errorMessage}"] {
+    padding: 12px 16px;
+    border: 1px solid #f5c2c7;
+    border-radius: 6px;
+    color: var(--error-text);
+    background: var(--error-bg);
+}
+
+/* Simple content card */
+
+.card {
+    width: min(1100px, calc(100% - 32px));
+    margin: 24px auto;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--white);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Utility classes */
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.text-muted {
+    color: var(--muted);
+}
+
+/* Responsive layout */
+
+@media (max-width: 700px) {
+    body {
+        font-size: 15px;
+    }
+
+    h1 {
+        font-size: 26px;
+    }
+
+    dl {
+        display: block;
+    }
+
+    dt {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    dd {
+        padding-top: 2px;
+        margin-bottom: 10px;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    

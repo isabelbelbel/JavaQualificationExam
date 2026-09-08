@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Create Task</title>
+	<link rel="stylesheet"
+	      th:href="@{/css/application.css}">
+</head>
+
+<body>
+    <h1>Create Task</h1>
+
+    <p>
+        Project:
+        <strong th:text="${project.name}">
+            Project name
+        </strong>
+    </p>
+
+    <p>
+        <a th:href="@{/projects/{id}(id=${project.id})}">
+            Back to project
+        </a>
+    </p>
+
+    <form th:action="@{/projects/{projectId}/tasks(
+            projectId=${project.id}
+        )}"
+          th:object="${projectTaskForm}"
+          method="post">
+
+        <div th:if="${#fields.hasGlobalErrors()}">
+            <p th:each="error : ${#fields.globalErrors()}"
+               th:text="${error}">
+                Form error
+            </p>
+        </div>
+
+        <div>
+            <label for="taskKey">
+                Task key:
+            </label>
+
+            <input id="taskKey"
+                   type="text"
+                   th:field="*{taskKey}"
+                   maxlength="50"
+                   placeholder="A">
+
+            <div th:if="${#fields.hasErrors('taskKey')}"
+                 th:errors="*{taskKey}">
+                Task key error
+            </div>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="name">
+                Task name:
+            </label>
+
+            <input id="name"
+                   type="text"
+                   th:field="*{name}"
+                   maxlength="200">
+
+            <div th:if="${#fields.hasErrors('name')}"
+                 th:errors="*{name}">
+                Task name error
+            </div>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="durationDays">
+                Duration in calendar days:
+            </label>
+
+            <input id="durationDays"
+                   type="number"
+                   th:field="*{durationDays}"
+                   min="1"
+                   max="3650">
+
+            <div th:if="${#fields.hasErrors('durationDays')}"
+                 th:errors="*{durationDays}">
+                Duration error
+            </div>
+        </div>
+
+        <br>
+
+        <fieldset>
+            <legend>Dependencies</legend>
+
+            <p th:if="${availableDependencies.isEmpty()}">
+                No existing tasks are available as dependencies.
+            </p>
+
+            <div th:each="dependency :
+                          ${availableDependencies}">
+
+                <label>
+                    <input type="checkbox"
+                           th:field="*{dependencyIds}"
+                           th:value="${dependency.id}">
+
+                    <span th:text="${dependency.taskKey}">
+                        A
+                    </span>
+
+                    <span>-</span>
+
+                    <span th:text="${dependency.name}">
+                        Task name
+                    </span>
+                </label>
+            </div>
+        </fieldset>
+
+        <br>
+
+        <button type="submit">
+            Create task
+        </button>
+    </form>
+</body>
+
+</html>

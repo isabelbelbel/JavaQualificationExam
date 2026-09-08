@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Create Project</title>
+	<link rel="stylesheet"
+	      th:href="@{/css/application.css}">
+</head>
+
+<body>
+    <h1>Create Project</h1>
+
+    <p>
+        <a th:href="@{/projects}">Back to project list</a>
+    </p>
+
+    <form th:action="@{/projects}"
+          th:object="${projectPlanForm}"
+          method="post">
+
+        <div>
+            <label for="name">Project name:</label>
+
+            <input id="name"
+                   type="text"
+                   th:field="*{name}"
+                   maxlength="150">
+
+            <div th:if="${#fields.hasErrors('name')}"
+                 th:errors="*{name}">
+                Project name error
+            </div>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="startDate">Start date:</label>
+
+            <input id="startDate"
+                   type="date"
+                   th:field="*{startDate}">
+
+            <div th:if="${#fields.hasErrors('startDate')}"
+                 th:errors="*{startDate}">
+                Start date error
+            </div>
+        </div>
+
+        <br>
+
+        <button type="submit">Create project</button>
+    </form>
+</body>
+
+</html>

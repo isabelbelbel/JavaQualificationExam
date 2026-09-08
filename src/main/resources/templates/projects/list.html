@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Project Plans</title>
+	<link rel="stylesheet"
+	      th:href="@{/css/application.css}">
+</head>
+
+<body>
+    <h1>Project Plans</h1>
+	<p th:if="${successMessage}"
+	   th:text="${successMessage}">
+	    Operation completed successfully
+	</p>
+
+	<p th:if="${errorMessage}"
+	   th:text="${errorMessage}">
+	    Operation failed
+	</p>
+    <p>
+        
+	        <a th:href="@{/projects/new}">Create project</a>
+    </p>
+
+    <p th:if="${projects.isEmpty()}">
+        No projects have been created.
+    </p>
+
+    <table th:unless="${projects.isEmpty()}"
+           border="1"
+           cellpadding="6">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Project name</th>
+                <th>Start date</th>
+                <th>Calculated end date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr th:each="project : ${projects}">
+                <td th:text="${project.id}">1</td>
+
+                <td th:text="${project.name}">
+                    Example project
+                </td>
+
+                <td th:text="${project.startDate}">
+                    2026-09-08
+                </td>
+
+                <td th:text="${project.calculatedEndDate != null
+                        ? project.calculatedEndDate
+                        : 'Not calculated'}">
+                    Not calculated
+                </td>
+
+                <td>
+					<form th:action="@{/projects/{id}(id=${project.id})}"
+					      method="get">
+					    <button type="submit">
+					        Open
+					    </button>
+					</form>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+
+</html>

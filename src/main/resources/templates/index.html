@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>JavaQualificationExam</title>
+</head>
+
+<body>
+    <h1 th:text="${applicationName}">
+        JavaQualificationExam
+    </h1>
+
+    <p>
+        Create project plans, define task dependencies,
+        and calculate calendar schedules.
+    </p>
+
+	<p>
+	    <a th:href="@{/projects}">View project plans</a>
+	</p>
+    <p>Spring Boot and Thymeleaf are running.</p>
+</body>
+
+</html>

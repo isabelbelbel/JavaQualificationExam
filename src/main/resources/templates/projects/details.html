@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Project Details</title>
+	<link rel="stylesheet"
+	      th:href="@{/css/application.css}">
+</head>
+
+<body>
+    <h1 th:text="${project.name}">
+        Project name
+    </h1>
+
+    <p>
+        <a th:href="@{/projects}">
+            Back to project list
+        </a>
+    </p>
+
+    <p th:if="${successMessage}"
+       th:text="${successMessage}">
+        Operation completed successfully
+    </p>
+
+    <p th:if="${errorMessage}"
+       th:text="${errorMessage}">
+        Operation failed
+    </p>
+
+    <h2>Project Information</h2>
+
+    <dl>
+        <dt>Project ID</dt>
+        <dd th:text="${project.id}">
+            1
+        </dd>
+
+        <dt>Start date</dt>
+        <dd th:text="${project.startDate}">
+            2026-09-08
+        </dd>
+
+        <dt>Calculated end date</dt>
+
+        <dd th:if="${project.calculatedEndDate != null}"
+            th:text="${project.calculatedEndDate}">
+            2026-09-20
+        </dd>
+
+        <dd th:unless="${project.calculatedEndDate != null}">
+            Not calculated yet
+        </dd>
+    </dl>
+
+	<h2>Project Actions</h2>
+
+	<form th:action="@{/projects/{id}/delete(id=${project.id})}"
+	      method="post">
+
+	    <button type="submit"
+	            onclick="return confirm(
+	                'Delete this project and all of its tasks?'
+	            );">
+	        Delete Project
+	    </button>
+	</form>
+	
+    <h2>Tasks</h2>
+
+    <p>
+		<form th:action="@{/projects/{projectId}/tasks/new(
+		        projectId=${project.id}
+		    )}"
+		      method="get">
+
+		    <button type="submit">
+		        Add Task
+		    </button>
+		</form>
+    </p>
+
+    <p th:if="${tasks.isEmpty()}">
+        No tasks have been created.
+    </p>
+
+    <table th:unless="${tasks.isEmpty()}"
+           border="1"
+           cellpadding="6">
+
+        <thead>
+            <tr>
+                <th>Task key</th>
+                <th>Name</th>
+                <th>Duration</th>
+                <th>Dependencies</th>
+                <th>Calculated start</th>
+                <th>Calculated end</th>
+				<th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr th:each="task : ${tasks}">
+                <td th:text="${task.taskKey}">
+                    A
+                </td>
+
+                <td th:text="${task.name}">
+                    Example task
+                </td>
+
+                <td>
+                    <span th:text="${task.durationDays}">
+                        3
+                    </span>
+                    day(s)
+                </td>
+
+                <td>
+                    <span th:if="${task.dependencies.isEmpty()}">
+                        None
+                    </span>
+
+                    <span th:each="dependency, status :
+                                   ${task.dependencies}">
+
+                        <span th:text="${dependency.taskKey}">
+                            A
+                        </span>
+
+                        <span th:unless="${status.last}">, </span>
+                    </span>
+                </td>
+
+                <td th:text="${task.calculatedStartDate != null
+                        ? task.calculatedStartDate
+                        : 'Not calculated'}">
+                    Not calculated
+                </td>
+
+                <td th:text="${task.calculatedEndDate != null
+                        ? task.calculatedEndDate
+                        : 'Not calculated'}">
+                    Not calculated
+                </td>
+				
+				<td>
+				    <form th:action="@{
+				            /projects/{projectId}/tasks/{taskId}/delete(
+				                projectId=${project.id},
+				                taskId=${task.id}
+				            )
+				        }"
+				          method="post">
+
+				        <button type="submit"
+				                onclick="return confirm('Delete this task?');">
+				            Delete
+				        </button>
+				    </form>
+				</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+
+</html>
