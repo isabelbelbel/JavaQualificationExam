@@ -19,102 +19,83 @@ import jakarta.validation.Valid;
 import com.qualification.exam.exception.InvalidProjectPlanException;
 import com.qualification.exam.service.ProjectSchedulingService;
 import com.qualification.exam.exception.InvalidProjectPlanException;
+import com.qualification.exam.service.AuditLogService;
 
 @Controller
 @RequestMapping("/projects")
 public class ProjectPlanController {
 
-    private final ProjectPlanService projectPlanService;
-    private final ProjectTaskService projectTaskService;
+	private final ProjectPlanService projectPlanService;
+	private final ProjectTaskService projectTaskService;
+	private final AuditLogService auditLogService;
 
+	public ProjectPlanController(ProjectPlanService projectPlanService, ProjectTaskService projectTaskService
+			, AuditLogService auditLogService)
+	{
+		this.projectPlanService = projectPlanService;
+		this.projectTaskService = projectTaskService;
+		this.auditLogService = auditLogService;
+	}
 
-    public ProjectPlanController(
-            ProjectPlanService projectPlanService,
-            ProjectTaskService projectTaskService
-    ) {
-        this.projectPlanService = projectPlanService;
-        this.projectTaskService = projectTaskService;
-    }
-    
-    @GetMapping
-    public String showProjectList(Model model) {
-        model.addAttribute(
-                "projects",
-                projectPlanService.findAll()
-        );
+	@GetMapping
+	public String showProjectList(Model model) {
+		model.addAttribute("projects", projectPlanService.findAll());
 
-        return "projects/list";
-    }
+		return "projects/list";
+	}
 
-    @GetMapping("/new")
-    public String showCreateForm(Model model) {
-        model.addAttribute(
-                "projectPlanForm",
-                new ProjectPlanForm()
-        );
+	@GetMapping("/new")
+	public String showCreateForm(Model model) {
+		model.addAttribute("projectPlanForm", new ProjectPlanForm());
 
-        return "projects/form";
-    }
+		return "projects/form";
+	}
 
-    @PostMapping
-    public String createProject(
-            @Valid ProjectPlanForm projectPlanForm,
-            BindingResult bindingResult,
-            RedirectAttributes redirectAttributes
-    ) {
-        if (bindingResult.hasErrors()) {
-            return "projects/form";
-        }
+	@PostMapping
+	public String createProject(@Valid ProjectPlanForm projectPlanForm, BindingResult bindingResult,
+			RedirectAttributes redirectAttributes) {
+		if (bindingResult.hasErrors()) {
+			return "projects/form";
+		}
 
-        ProjectPlan savedProject =
-                projectPlanService.create(projectPlanForm);
+		ProjectPlan savedProject = projectPlanService.create(projectPlanForm);
 
-        redirectAttributes.addFlashAttribute(
-                "successMessage",
-                "Project created successfully"
-        );
+		redirectAttributes.addFlashAttribute("successMessage", "Project created successfully");
 
-        return "redirect:/projects/" + savedProject.getId();
-    }
+		return "redirect:/projects/" + savedProject.getId();
+	}
 
-    @GetMapping("/{id}")
-    public String showProjectDetails(
-            @PathVariable Long id,
-            Model model
-    ) {
-        model.addAttribute(
-                "project",
-                projectPlanService.findById(id)
-        );
+	@GetMapping("/{id}")
+	public String showProjectDetails(@PathVariable Long id, Model model) {
+		model.addAttribute("project", projectPlanService.findById(id));
 
-        model.addAttribute(
-                "tasks",
-                projectTaskService.findByProjectId(id)
-        );
+		model.addAttribute("tasks", projectTaskService.findByProjectId(id));
 
-        return "projects/details";
-    }
-    @PostMapping("/{id}/delete")
-    public String deleteProject(
-            @PathVariable("id") Long projectId,
-            RedirectAttributes redirectAttributes
-    ) {
-        try {
-            projectPlanService.delete(projectId);
+		return "projects/details";
+	}
 
-            redirectAttributes.addFlashAttribute(
-                    "successMessage",
-                    "Project deleted successfully"
-            );
-        } catch (InvalidProjectPlanException exception) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage",
-                    exception.getMessage()
-            );
-        }
+	@PostMapping("/{id}/delete")
+	public String deleteProject(@PathVariable("id") Long projectId, RedirectAttributes redirectAttributes) {
+		try {
+			projectPlanService.delete(projectId);
 
-        return "redirect:/projects";
-    }
-    
-    
+			redirectAttributes.addFlashAttribute("successMessage", "Project deleted successfully");
+		} catch (InvalidProjectPlanException exception) {
+		    auditLogService.recordFailure(
+		            "DELETE_PROJECT",
+		            projectId,
+		            null,
+		            exception.getClass().getSimpleName(),
+		            exception.getMessage()
+		    );
+
+		    redirectAttributes.addFlashAttribute(
+		            "errorMessage",
+		            exception.getMessage()
+		    );
+		}
+
+		return "redirect:/projects";
+	}
+
 }

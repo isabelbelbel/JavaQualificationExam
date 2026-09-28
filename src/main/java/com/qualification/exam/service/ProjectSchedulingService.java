@@ -25,298 +25,181 @@ import com.qualification.exam.repository.ProjectTaskRepository;
 @Service
 public class ProjectSchedulingService {
 
-    private final ProjectPlanRepository projectPlanRepository;
-    private final ProjectTaskRepository projectTaskRepository;
+	private final ProjectPlanRepository projectPlanRepository;
+	private final ProjectTaskRepository projectTaskRepository;
 
-    public ProjectSchedulingService(
-            ProjectPlanRepository projectPlanRepository,
-            ProjectTaskRepository projectTaskRepository
-    ) {
-        this.projectPlanRepository = projectPlanRepository;
-        this.projectTaskRepository = projectTaskRepository;
-    }
+	public ProjectSchedulingService(ProjectPlanRepository projectPlanRepository,
+			ProjectTaskRepository projectTaskRepository) {
+		this.projectPlanRepository = projectPlanRepository;
+		this.projectTaskRepository = projectTaskRepository;
+	}
 
-    @Transactional
-    public void calculateSchedule(Long projectId) {
-        ProjectPlan project = projectPlanRepository
-                .findById(projectId)
-                .orElseThrow(() ->
-                        new InvalidProjectPlanException(
-                                "Project not found: " + projectId
-                        )
-                );
+	@Transactional
+	public void calculateSchedule(Long projectId) {
+		ProjectPlan project = projectPlanRepository.findById(projectId)
+				.orElseThrow(() -> new InvalidProjectPlanException("Project not found: " + projectId));
 
-        List<ProjectTask> tasks = projectTaskRepository
-                .findByProjectPlanIdOrderByIdAsc(projectId);
+		List<ProjectTask> tasks = projectTaskRepository.findByProjectPlanIdOrderByIdAsc(projectId);
 
-        if (tasks.isEmpty()) {
-            throw new InvalidProjectPlanException(
-                    "Cannot calculate a schedule "
-                            + "for a project with no tasks"
-            );
-        }
+		if (tasks.isEmpty()) {
+			throw new InvalidProjectPlanException("Cannot calculate a schedule " + "for a project with no tasks");
+		}
 
-        for (ProjectTask task : tasks) {
-            task.clearSchedule();
-        }
+		for (ProjectTask task : tasks) {
+			task.clearSchedule();
+		}
 
-        Map<Long, ProjectTask> tasksById =
-                createTaskIndex(tasks);
+		Map<Long, ProjectTask> tasksById = createTaskIndex(tasks);
 
-        validateDependencies(
-                projectId,
-                tasks,
-                tasksById
-        );
+		validateDependencies(projectId, tasks, tasksById);
 
-        Map<Long, Integer> inDegree =
-                createInDegreeMap(tasks);
+		Map<Long, Integer> inDegree = createInDegreeMap(tasks);
 
-        Map<Long, Set<ProjectTask>> dependents =
-                createDependentsMap(tasks);
+		Map<Long, Set<ProjectTask>> dependents = createDependentsMap(tasks);
 
-        Queue<ProjectTask> readyTasks =
-                createReadyTaskQueue(tasks, inDegree);
+		Queue<ProjectTask> readyTasks = createReadyTaskQueue(tasks, inDegree);
 
-        Map<Long, ProjectTask> scheduledTasks =
-                new LinkedHashMap<>();
+		Map<Long, ProjectTask> scheduledTasks = new LinkedHashMap<>();
 
-        while (!readyTasks.isEmpty()) {
-            ProjectTask currentTask =
-                    readyTasks.poll();
+		while (!readyTasks.isEmpty()) {
+			ProjectTask currentTask = readyTasks.poll();
 
-            LocalDate startDate = calculateStartDate(
-                    project.getStartDate(),
-                    currentTask
-            );
+			LocalDate startDate = calculateStartDate(project.getStartDate(), currentTask);
 
-            LocalDate endDate = startDate.plusDays(
-                    currentTask.getDurationDays() - 1L
-            );
+			LocalDate endDate = startDate.plusDays(currentTask.getDurationDays() - 1L);
 
-            currentTask.updateSchedule(
-                    startDate,
-                    endDate
-            );
+			currentTask.updateSchedule(startDate, endDate);
 
-            scheduledTasks.put(
-                    currentTask.getId(),
-                    currentTask
-            );
+			scheduledTasks.put(currentTask.getId(), currentTask);
 
-            List<ProjectTask> newlyReadyTasks =
-                    new ArrayList<>();
+			List<ProjectTask> newlyReadyTasks = new ArrayList<>();
 
-            for (ProjectTask dependent :
-                    dependents.getOrDefault(
-                            currentTask.getId(),
-                            Set.of()
-                    )) {
+			for (ProjectTask dependent : dependents.getOrDefault(currentTask.getId(), Set.of())) {
 
-                int remainingDependencies =
-                        inDegree.compute(
-                                dependent.getId(),
-                                (taskId, currentValue) ->
-                                        currentValue - 1
-                        );
+				int remainingDependencies = inDegree.compute(dependent.getId(),
+						(taskId, currentValue) -> currentValue - 1);
 
-                if (remainingDependencies == 0) {
-                    newlyReadyTasks.add(dependent);
-                }
-            }
+				if (remainingDependencies == 0) {
+					newlyReadyTasks.add(dependent);
+				}
+			}
 
-            newlyReadyTasks.sort(
-                    Comparator.comparing(
-                            ProjectTask::getTaskKey
-                    )
-            );
+			newlyReadyTasks.sort(Comparator.comparing(ProjectTask::getTaskKey));
 
-            readyTasks.addAll(newlyReadyTasks);
-        }
+			readyTasks.addAll(newlyReadyTasks);
+		}
 
-        detectCircularDependencies(
-                tasks,
-                scheduledTasks
-        );
+		detectCircularDependencies(tasks, scheduledTasks);
 
-        LocalDate projectEndDate = tasks.stream()
-                .map(ProjectTask::getCalculatedEndDate)
-                .max(Comparator.naturalOrder())
-                .orElse(project.getStartDate());
+		LocalDate projectEndDate = tasks.stream().map(ProjectTask::getCalculatedEndDate).max(Comparator.naturalOrder())
+				.orElse(project.getStartDate());
 
-        project.setCalculatedEndDate(
-                projectEndDate
-        );
+		project.setCalculatedEndDate(projectEndDate);
 
-        projectTaskRepository.saveAll(tasks);
-        projectPlanRepository.save(project);
-    }
+		projectTaskRepository.saveAll(tasks);
+		projectPlanRepository.save(project);
+	}
 
-    private Map<Long, ProjectTask> createTaskIndex(
-            List<ProjectTask> tasks
-    ) {
-        Map<Long, ProjectTask> tasksById =
-                new LinkedHashMap<>();
+	private Map<Long, ProjectTask> createTaskIndex(List<ProjectTask> tasks) {
+		Map<Long, ProjectTask> tasksById = new LinkedHashMap<>();
 
-        for (ProjectTask task : tasks) {
-            tasksById.put(task.getId(), task);
-        }
+		for (ProjectTask task : tasks) {
+			tasksById.put(task.getId(), task);
+		}
 
-        return tasksById;
-    }
+		return tasksById;
+	}
 
-    private void validateDependencies(
-            Long projectId,
-            List<ProjectTask> tasks,
-            Map<Long, ProjectTask> tasksById
-    ) {
-        for (ProjectTask task : tasks) {
-            if (task.getDurationDays() < 1) {
-                throw new InvalidProjectPlanException(
-                        "Task " + task.getTaskKey()
-                                + " must have a duration "
-                                + "of at least one day"
-                );
-            }
+	private void validateDependencies(Long projectId, List<ProjectTask> tasks, Map<Long, ProjectTask> tasksById) {
+		for (ProjectTask task : tasks) {
+			if (task.getDurationDays() < 1) {
+				throw new InvalidProjectPlanException(
+						"Task " + task.getTaskKey() + " must have a duration " + "of at least one day");
+			}
 
-            for (ProjectTask dependency :
-                    task.getDependencies()) {
+			for (ProjectTask dependency : task.getDependencies()) {
 
-                if (dependency.getId()
-                        .equals(task.getId())) {
+				if (dependency.getId().equals(task.getId())) {
 
-                    throw new InvalidProjectPlanException(
-                            "Task " + task.getTaskKey()
-                                    + " cannot depend on itself"
-                    );
-                }
+					throw new InvalidProjectPlanException("Task " + task.getTaskKey() + " cannot depend on itself");
+				}
 
-                if (!tasksById.containsKey(
-                        dependency.getId()
-                )) {
-                    throw new InvalidProjectPlanException(
-                            "Task " + task.getTaskKey()
-                                    + " has a missing or invalid "
-                                    + "dependency"
-                    );
-                }
+				if (!tasksById.containsKey(dependency.getId())) {
+					throw new InvalidProjectPlanException(
+							"Task " + task.getTaskKey() + " has a missing or invalid " + "dependency");
+				}
 
-                Long dependencyProjectId =
-                        dependency.getProjectPlan()
-                                .getId();
+				Long dependencyProjectId = dependency.getProjectPlan().getId();
 
-                if (!projectId.equals(
-                        dependencyProjectId
-                )) {
-                    throw new InvalidProjectPlanException(
-                            "Task " + task.getTaskKey()
-                                    + " depends on a task "
-                                    + "from another project"
-                    );
-                }
-            }
-        }
-    }
+				if (!projectId.equals(dependencyProjectId)) {
+					throw new InvalidProjectPlanException(
+							"Task " + task.getTaskKey() + " depends on a task " + "from another project");
+				}
+			}
+		}
+	}
 
-    private Map<Long, Integer> createInDegreeMap(
-            List<ProjectTask> tasks
-    ) {
-        Map<Long, Integer> inDegree =
-                new HashMap<>();
+	private Map<Long, Integer> createInDegreeMap(List<ProjectTask> tasks) {
+		Map<Long, Integer> inDegree = new HashMap<>();
 
-        for (ProjectTask task : tasks) {
-            inDegree.put(
-                    task.getId(),
-                    task.getDependencies().size()
-            );
-        }
+		for (ProjectTask task : tasks) {
+			inDegree.put(task.getId(), task.getDependencies().size());
+		}
 
-        return inDegree;
-    }
+		return inDegree;
+	}
 
-    private Map<Long, Set<ProjectTask>>
-    createDependentsMap(List<ProjectTask> tasks) {
+	private Map<Long, Set<ProjectTask>> createDependentsMap(List<ProjectTask> tasks) {
 
-        Map<Long, Set<ProjectTask>> dependents =
-                new HashMap<>();
+		Map<Long, Set<ProjectTask>> dependents = new HashMap<>();
 
-        for (ProjectTask task : tasks) {
-            dependents.put(
-                    task.getId(),
-                    new LinkedHashSet<>()
-            );
-        }
+		for (ProjectTask task : tasks) {
+			dependents.put(task.getId(), new LinkedHashSet<>());
+		}
 
-        for (ProjectTask task : tasks) {
-            for (ProjectTask dependency :
-                    task.getDependencies()) {
+		for (ProjectTask task : tasks) {
+			for (ProjectTask dependency : task.getDependencies()) {
 
-                dependents
-                        .get(dependency.getId())
-                        .add(task);
-            }
-        }
+				dependents.get(dependency.getId()).add(task);
+			}
+		}
 
-        return dependents;
-    }
+		return dependents;
+	}
 
-    private Queue<ProjectTask> createReadyTaskQueue(
-            List<ProjectTask> tasks,
-            Map<Long, Integer> inDegree
-    ) {
-        Queue<ProjectTask> readyTasks =
-                new ArrayDeque<>();
+	private Queue<ProjectTask> createReadyTaskQueue(List<ProjectTask> tasks, Map<Long, Integer> inDegree) {
+		Queue<ProjectTask> readyTasks = new ArrayDeque<>();
 
-        tasks.stream()
-                .filter(task ->
-                        inDegree.get(task.getId()) == 0
-                )
-                .sorted(
-                        Comparator.comparing(
-                                ProjectTask::getTaskKey
-                        )
-                )
-                .forEach(readyTasks::offer);
+		tasks.stream().filter(task -> inDegree.get(task.getId()) == 0)
+				.sorted(Comparator.comparing(ProjectTask::getTaskKey))
+				.forEach(readyTasks::offer);
 
-        return readyTasks;
-    }
+		return readyTasks;
+	}
 
-    private LocalDate calculateStartDate(
-            LocalDate projectStartDate,
-            ProjectTask task
-    ) {
-        return task.getDependencies()
-                .stream()
-                .map(ProjectTask::getCalculatedEndDate)
-                .filter(date -> date != null)
-                .max(Comparator.naturalOrder())
-                .map(date -> date.plusDays(1))
-                .orElse(projectStartDate);
-    }
+	private LocalDate calculateStartDate(LocalDate projectStartDate, ProjectTask task) {
+		return task.getDependencies()
+				.stream()
+				.map(ProjectTask::getCalculatedEndDate)
+				.filter(date -> date != null)
+				.max(Comparator.naturalOrder())
+				.map(date -> date.plusDays(1))
+				.orElse(projectStartDate);
+	}
 
-    private void detectCircularDependencies(
-            List<ProjectTask> tasks,
-            Map<Long, ProjectTask> scheduledTasks
-    ) {
-        if (scheduledTasks.size() == tasks.size()) {
-            return;
-        }
+	private void detectCircularDependencies(List<ProjectTask> tasks, Map<Long, ProjectTask> scheduledTasks) {
+		if (scheduledTasks.size() == tasks.size()) {
+			return;
+		}
 
-        Set<String> affectedTaskKeys =
-                new LinkedHashSet<>();
+		Set<String> affectedTaskKeys = new LinkedHashSet<>();
 
-        for (ProjectTask task : tasks) {
-            if (!scheduledTasks.containsKey(
-                    task.getId()
-            )) {
-                affectedTaskKeys.add(
-                        task.getTaskKey()
-                );
-            }
-        }
+		for (ProjectTask task : tasks) {
+			if (!scheduledTasks.containsKey(task.getId())) {
+				affectedTaskKeys.add(task.getTaskKey());
+			}
+		}
 
-        throw new CircularDependencyException(
-                affectedTaskKeys
-        );
-    }
+		throw new CircularDependencyException(affectedTaskKeys);
+	}
 }

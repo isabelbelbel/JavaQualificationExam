@@ -9,78 +9,42 @@ import com.qualification.exam.entity.ProjectTask;
 @Service
 public class ProjectTaskApplicationService {
 
-    private final ProjectTaskService projectTaskService;
+	private final ProjectTaskService projectTaskService;
 
-    private final ProjectSchedulingService projectSchedulingService;
+	private final ProjectSchedulingService projectSchedulingService;
 
-    private final AuditLogService auditLogService;
+	private final AuditLogService auditLogService;
 
-    public ProjectTaskApplicationService(
-            ProjectTaskService projectTaskService,
-            ProjectSchedulingService projectSchedulingService,
-            AuditLogService auditLogService
-    ) {
-        this.projectTaskService = projectTaskService;
-        this.projectSchedulingService =
-                projectSchedulingService;
-        this.auditLogService = auditLogService;
-    }
+	public ProjectTaskApplicationService(ProjectTaskService projectTaskService,
+			ProjectSchedulingService projectSchedulingService, AuditLogService auditLogService) {
+		this.projectTaskService = projectTaskService;
+		this.projectSchedulingService = projectSchedulingService;
+		this.auditLogService = auditLogService;
+	}
 
-    @Transactional
-    public ProjectTask createAndRecalculate(
-            Long projectId,
-            ProjectTaskForm form
-    ) {
-        ProjectTask createdTask =
-                projectTaskService.create(
-                        projectId,
-                        form
-                );
+	@Transactional
+	public ProjectTask createAndRecalculate(Long projectId, ProjectTaskForm form) {
+		ProjectTask createdTask = projectTaskService.create(projectId, form);
 
-        projectSchedulingService.calculateSchedule(
-                projectId
-        );
+		projectSchedulingService.calculateSchedule(projectId);
 
-        auditLogService.record(
-                "CREATE_TASK",
-                projectId,
-                createdTask.getId(),
-                "Created task "
-                        + createdTask.getTaskKey()
-                        + " and recalculated the schedule"
-        );
+		auditLogService.record("CREATE_TASK", projectId, createdTask.getId(),
+				"Created task " + createdTask.getTaskKey() + " and recalculated the schedule");
 
-        return createdTask;
-    }
+		return createdTask;
+	}
 
-    @Transactional
-    public void deleteAndRecalculate(
-            Long projectId,
-            Long taskId
-    ) {
-        String deletedTaskKey =
-                projectTaskService.delete(
-                        projectId,
-                        taskId
-                );
+	@Transactional
+	public void deleteAndRecalculate(Long projectId, Long taskId) {
+		String deletedTaskKey = projectTaskService.delete(projectId, taskId);
 
-        if (projectTaskService.hasTasks(projectId)) {
-            projectSchedulingService.calculateSchedule(
-                    projectId
-            );
-        } else {
-            projectTaskService.clearProjectEndDate(
-                    projectId
-            );
-        }
+		if (projectTaskService.hasTasks(projectId)) {
+			projectSchedulingService.calculateSchedule(projectId);
+		} else {
+			projectTaskService.clearProjectEndDate(projectId);
+		}
 
-        auditLogService.record(
-                "DELETE_TASK",
-                projectId,
-                taskId,
-                "Deleted task "
-                        + deletedTaskKey
-                        + " and recalculated the schedule"
-        );
-    }
+		auditLogService.record("DELETE_TASK", projectId, taskId,
+				"Deleted task " + deletedTaskKey + " and recalculated the schedule");
+	}
 }

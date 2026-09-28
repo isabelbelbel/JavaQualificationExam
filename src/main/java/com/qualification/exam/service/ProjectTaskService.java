@@ -11,6 +11,7 @@ import com.qualification.exam.dto.ProjectTaskForm;
 import com.qualification.exam.entity.ProjectPlan;
 import com.qualification.exam.entity.ProjectTask;
 import com.qualification.exam.exception.InvalidProjectPlanException;
+import com.qualification.exam.exception.ResourceNotFoundException;
 import com.qualification.exam.repository.ProjectPlanRepository;
 import com.qualification.exam.repository.ProjectTaskRepository;
 
@@ -181,5 +182,36 @@ public class ProjectTaskService {
         project.setCalculatedEndDate(null);
 
         projectPlanRepository.save(project);
+    }
+    
+    //API Endpoint
+    @Transactional(readOnly = true)
+    public ProjectTask findByProjectIdAndTaskId(
+            Long projectId,
+            Long taskId
+    ) {
+        ProjectTask task = projectTaskRepository
+                .findById(taskId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Task not found: " + taskId
+                        )
+                );
+
+        Long actualProjectId = task
+                .getProjectPlan()
+                .getId();
+
+        if (!projectId.equals(actualProjectId)) {
+            throw new ResourceNotFoundException(
+                    "Task " + taskId
+                            + " was not found in project "
+                            + projectId
+            );
+        }
+
+        task.getDependencies().size();
+
+        return task;
     }
 }

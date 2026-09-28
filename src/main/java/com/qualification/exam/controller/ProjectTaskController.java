@@ -16,117 +16,101 @@ import com.qualification.exam.service.ProjectTaskService;
 import com.qualification.exam.service.ProjectTaskApplicationService;
 
 import jakarta.validation.Valid;
+import com.qualification.exam.service.AuditLogService;
 
 @Controller
 @RequestMapping("/projects/{projectId}/tasks")
 public class ProjectTaskController {
 
-    private final ProjectPlanService projectPlanService;
-    private final ProjectTaskService projectTaskService;
-    private final ProjectTaskApplicationService projectTaskApplicationService;
+	private final ProjectPlanService projectPlanService;
+	private final ProjectTaskService projectTaskService;
+	private final ProjectTaskApplicationService projectTaskApplicationService;
+	private final AuditLogService auditLogService;
 
-    public ProjectTaskController(
-            ProjectPlanService projectPlanService,
-            ProjectTaskService projectTaskService,
-            ProjectTaskApplicationService
-                    projectTaskApplicationService
-    ) {
-        this.projectPlanService = projectPlanService;
-        this.projectTaskService = projectTaskService;
-        this.projectTaskApplicationService =
-                projectTaskApplicationService;
-    }
+	public ProjectTaskController(
+	        ProjectPlanService projectPlanService,
+	        ProjectTaskService projectTaskService,
+	        ProjectTaskApplicationService projectTaskApplicationService,
+	        AuditLogService auditLogService
+	) {
+	    this.projectPlanService = projectPlanService;
+	    this.projectTaskService = projectTaskService;
+	    this.projectTaskApplicationService =
+	            projectTaskApplicationService;
+	    this.auditLogService = auditLogService;
+	}
+	
+	@GetMapping("/new")
+	public String showCreateForm(@PathVariable("projectId") Long projectId, Model model) {
+		model.addAttribute("projectTaskForm", new ProjectTaskForm());
 
-    @GetMapping("/new")
-    public String showCreateForm(
-    		@PathVariable("projectId") Long projectId,
-            Model model
-    ) {
-        model.addAttribute(
-                "projectTaskForm",
-                new ProjectTaskForm()
-        );
+		prepareFormModel(projectId, model);
 
-        prepareFormModel(projectId, model);
+		return "tasks/form";
+	}
 
-        return "tasks/form";
-    }
+	@PostMapping
+	public String createTask(@PathVariable("projectId") Long projectId, @Valid ProjectTaskForm projectTaskForm,
+			BindingResult bindingResult, Model model, RedirectAttributes redirectAttributes) {
+		if (bindingResult.hasErrors()) {
+			prepareFormModel(projectId, model);
+			return "tasks/form";
+		}
 
-    @PostMapping
-    public String createTask(
-    		@PathVariable("projectId") Long projectId,
-            @Valid ProjectTaskForm projectTaskForm,
-            BindingResult bindingResult,
-            Model model,
-            RedirectAttributes redirectAttributes
-    ) {
-        if (bindingResult.hasErrors()) {
-            prepareFormModel(projectId, model);
-            return "tasks/form";
-        }
+		try {
+			projectTaskApplicationService.createAndRecalculate(projectId, projectTaskForm);
+		} catch (InvalidProjectPlanException exception) {
+		    auditLogService.recordFailure(
+		            "CREATE_TASK",
+		            projectId,
+		            null,
+		            exception.getClass().getSimpleName(),
+		            exception.getMessage()
+		    );
 
-        try {
-            projectTaskApplicationService.createAndRecalculate(
-                    projectId,
-                    projectTaskForm
-            );
-        } catch (InvalidProjectPlanException exception) {
-            bindingResult.reject(
-                    "task.invalid",
-                    exception.getMessage()
-            );
+		    bindingResult.reject(
+		            "task.invalid",
+		            exception.getMessage()
+		    );
 
-            prepareFormModel(projectId, model);
+		    prepareFormModel(projectId, model);
 
-            return "tasks/form";
-        }
+		    return "tasks/form";
+		}
 
-        redirectAttributes.addFlashAttribute(
-                "successMessage",
-                "Task created and schedule recalculated successfully"
-        );
+		redirectAttributes.addFlashAttribute("successMessage", "Task created and schedule recalculated successfully");
 
-        return "redirect:/projects/" + projectId;
-    }
+		return "redirect:/projects/" + projectId;
+	}
 
-    @PostMapping("/{taskId}/delete")
-    public String deleteTask(
-            @PathVariable("projectId") Long projectId,
-            @PathVariable("taskId") Long taskId,
-            RedirectAttributes redirectAttributes
-    ) {
-        try {
-            projectTaskApplicationService
-                    .deleteAndRecalculate(
-                            projectId,
-                            taskId
-                    );
+	@PostMapping("/{taskId}/delete")
+	public String deleteTask(@PathVariable("projectId") Long projectId, @PathVariable("taskId") Long taskId,
+			RedirectAttributes redirectAttributes) {
+		try {
+			projectTaskApplicationService.deleteAndRecalculate(projectId, taskId);
 
-            redirectAttributes.addFlashAttribute(
-                    "successMessage",
-                    "Task deleted and schedule recalculated successfully"
-            );
-        } catch (InvalidProjectPlanException exception) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage",
-                    exception.getMessage()
-            );
-        }
+			redirectAttributes.addFlashAttribute("successMessage",
+					"Task deleted and schedule recalculated successfully");
+		 } catch (InvalidProjectPlanException exception) {
+		    auditLogService.recordFailure(
+		            "DELETE_TASK",
+		            projectId,
+		            taskId,
+		            exception.getClass().getSimpleName(),
+		            exception.getMessage()
+		    );
 
-        return "redirect:/projects/" + projectId;
-    }
-    private void prepareFormModel(
-            Long projectId,
-            Model model
-    ) {
-        model.addAttribute(
-                "project",
-                projectPlanService.findById(projectId)
-        );
+		    redirectAttributes.addFlashAttribute(
+		            "errorMessage",
+		            exception.getMessage()
+		    );
+		}
+		return "redirect:/projects/" + projectId;
+	}
 
-        model.addAttribute(
-                "availableDependencies",
-                projectTaskService.findByProjectId(projectId)
-        );
-    }
+	private void prepareFormModel(Long projectId, Model model) {
+		model.addAttribute("project", projectPlanService.findById(projectId));
+
+		model.addAttribute("availableDependencies", projectTaskService.findByProjectId(projectId));
+	}
 }
